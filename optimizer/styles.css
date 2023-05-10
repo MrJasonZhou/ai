@@ -1,0 +1,8 @@
+#messageList {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.list-group-item {
+  white-space: pre-line;
+}

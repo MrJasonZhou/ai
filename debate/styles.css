@@ -1,0 +1,98 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.container {
+    width: 90%;
+    margin: 0 auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    height: 100%;
+    overflow-y: hidden;
+    position: relative;
+}
+
+#conversation-area {
+    border: 1px solid #ccc;
+    padding: 10px;
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    height: calc(100% - 20px);
+    overflow-y: auto;
+}
+
+.message-row {
+    display: flex;
+    margin-bottom: 10px;
+}
+
+/* 主持人 */
+.message-row[data-role="moderator"] {
+    background-color: #ffff00;
+}
+
+/* 正方 */
+.message-row[data-role="proPlayer"] {
+    background-color: #ffe6e6;
+}
+
+/* 反方 */
+.message-row[data-role="conPlayer"] {
+    background-color: #e6f0ff;
+}
+
+.message-role {
+    flex: 0 0 100px;
+    font-weight: bold;
+}
+
+.message-content {
+    flex: 1;
+}
+
+.status-bar {
+    height: 3em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f8f9fa;
+    color: #007bff;
+    border-top: 1px solid #ccc;
+}
+
+.status-bar span {
+    font-size: 1.2em;
+}
+
+/* 小屏幕设备 */
+@media (max-width: 767.98px) {
+    .submit-button {
+        width: 100%;
+    }
+    body {
+        font-size: 14px;
+    }
+    .message-role {
+        flex: 0 0 60px;
+    }
+}
+
+@media (min-width: 768px) {
+    .submit-button {
+        width: 150px;
+    }
+}
