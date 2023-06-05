@@ -1,0 +1,18 @@
+{
+  "manifest_version": 2,
+  "name": "ChatGPT Proxy",
+  "version": "1.0",
+  "description": "Proxy requests from chat.openai.com to chatgpt.jasonzhou.com",
+  "icons": {
+    "48": "icon.png"
+  },
+	"permissions": [
+	  "webRequest",
+	  "webRequestBlocking",
+	  "<all_urls>"
+	],
+  "content_security_policy": "script-src 'self' https://chat.openai.com https://chatgpt.jasonzhou.com;",
+  "background": {
+    "scripts": ["background.js"]
+  }
+}
