@@ -1,0 +1,14 @@
+#canvas-container {
+    position: relative;
+}
+
+#pdf-canvas, #text-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+#canvas-border {
+    border: 3px solid lightcoral;
+    display: inline-block; /* Or use 'block' */
+}

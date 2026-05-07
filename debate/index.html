@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="styles.css" charset="UTF-8">
+    <title>AI自动辩论赛</title>
+</head>
+<body>
+    <div class="container d-flex flex-column h-100">
+        <h1 class="text-center my-3">AI自动辩论赛</h1>
+        <div class="row mb-3">
+            <label class="col-md-2 col-form-label" for="debateTopic">请输入辩论赛题目：</label>
+            <div class="col-md-6 col-sm-12">
+                <input type="text" class="form-control" id="debateTopic">
+            </div>
+            <div class="col-md-4 col-sm-12 mt-3 mt-md-0">
+                <button class="btn btn-primary submit-button" id="submitTopic">提交</button>
+            </div>
+        </div>
+        <div class="chat flex-fill" id="chat-area">
+            <ul class="list-unstyled" id="conversation-area"></ul>
+        </div>
+    </div>
+    <div id="statusBar" class="status-bar">
+        <span id="statusText"></span>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+    <script src="openai.js" charset="UTF-8"></script>
+    <script src="player.js" charset="UTF-8"></script>
+    <script src="moderator.js" charset="UTF-8"></script>
+    <script src="main.js" charset="UTF-8"></script>
+</body>
+</html>
