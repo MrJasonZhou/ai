@@ -171,12 +171,10 @@ def fetch_and_clean_imap(section: str, cfg: dict, state: dict, esp_whitelist: se
 
     last_uid: int = state.get(section, {}).get("last_uid", 0)
 
-    log(f"[{section}] {host}:{port} に接続中 (IMAP) ...")
     conn = imaplib.IMAP4_SSL(host, port)
     conn.login(username, password)
 
     junk = resolve_junk_folder(conn, junk_folder_cfg)
-    log(f"[{section}] 迷惑メールフォルダ: {junk!r}")
     # スペースを含むフォルダ名は IMAP プロトコル上クォートが必要
     junk_imap = f'"{junk}"' if " " in junk else junk
 
@@ -187,17 +185,20 @@ def fetch_and_clean_imap(section: str, cfg: dict, state: dict, esp_whitelist: se
         _, data = conn.uid("search", None, "ALL")
         all_uids = data[0].split()
         uid_list = all_uids[-SEED_LIMIT:]
-        log(f"[{section}] 初回実行 — 最新 {len(uid_list)} 件をシード処理")
+        label = f"初回実行 — 最新 {len(uid_list)} 件をシード処理"
     else:
         # 2回目以降：前回の最大 UID より新しいメッセージのみ取得
         _, data = conn.uid("search", None, f"UID {last_uid + 1}:*")
         uid_list = [u for u in data[0].split() if int(u) > last_uid]
-        log(f"[{section}] 差分実行 — UID {last_uid} 以降の新着 {len(uid_list)} 件")
+        label = f"差分実行 — UID {last_uid} 以降の新着 {len(uid_list)} 件"
 
     if not uid_list:
-        log(f"[{section}] 新着メールなし。処理をスキップ。")
         conn.logout()
         return
+
+    # 新着あり：ここから先はログを出力する
+    log(f"[{section}] {host}:{port} に接続 (IMAP) / 迷惑メールフォルダ: {junk!r}")
+    log(f"[{section}] {label}")
 
     moved = kept = 0
     max_uid = last_uid
@@ -269,7 +270,6 @@ def fetch_and_clean_pop3(section: str, cfg: dict, state: dict, esp_whitelist: se
     username = cfg["username"]
     password = cfg["password"].strip()
 
-    log(f"[{section}] {host}:{port} に接続中 (POP3) ...")
     pop = poplib.POP3_SSL(host, port)
     pop.user(username)
     pop.pass_(password)
@@ -291,14 +291,17 @@ def fetch_and_clean_pop3(section: str, cfg: dict, state: dict, esp_whitelist: se
                          sorted(uidl_map.items(), key=lambda x: x[1])]
         seed = set(ordered_uidls[-SEED_LIMIT:])
         new_uidls &= seed
-        log(f"[{section}] 初回実行 — 最新 {len(new_uidls)} 件をシード処理")
+        label = f"初回実行 — 最新 {len(new_uidls)} 件をシード処理"
     else:
-        log(f"[{section}] 差分実行 — 新着 {len(new_uidls)} 件")
+        label = f"差分実行 — 新着 {len(new_uidls)} 件"
 
     if not new_uidls:
-        log(f"[{section}] 新着メールなし。処理をスキップ。")
         pop.quit()
         return
+
+    # 新着あり：ここから先はログを出力する
+    log(f"[{section}] {host}:{port} に接続 (POP3)")
+    log(f"[{section}] {label}")
 
     deleted = kept = 0
 
