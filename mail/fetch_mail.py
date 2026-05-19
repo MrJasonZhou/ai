@@ -13,6 +13,8 @@ IMAP/POP3による差分スパムフィルター。
 スパム判定ルール：
   1. Authentication-Results に dmarc=fail または dmarc=none が含まれる
   2. Return-Path のドメインと From のドメインが異なる（ESP ホワイトリスト除外）
+  3. Received-SPF が none または fail（SPF 認証失敗）
+  4. 送信ドメインが廉価・濫用の多い TLD を使用している
 
 設定ファイル（mail.ini）:
   [DEFAULT] セクションに esp_whitelist をカンマ区切りで記述（全セクション共有）
@@ -63,6 +65,16 @@ def save_state(state: dict) -> None:
     STATE_FILE.write_text(json.dumps(state, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
+# 廉価・濫用の多い TLD（送信ドメインがこれらなら即スパム判定）
+SUSPICIOUS_TLDS = {
+    "top", "xyz", "club", "online", "site", "space",
+    "bid", "win", "loan", "click", "link", "work",
+    "gq", "ml", "cf", "ga", "tk",
+    "buzz", "icu", "cyou", "cfd", "sbs", "vip",
+    "rest", "bar", "quest", "autos", "boats",
+}
+
+
 def load_esp_whitelist(cfg: dict) -> set[str]:
     """設定ファイルの esp_whitelist をカンマ区切りで読み込む。"""
     raw = cfg.get("esp_whitelist", "")
@@ -70,11 +82,19 @@ def load_esp_whitelist(cfg: dict) -> set[str]:
 
 
 def extract_domain(address: str) -> str:
+    """アドレス文字列から登録ドメイン（末尾2ラベル）を取り出す。"""
     m = re.search(r"@([\w.\-]+)", address)
     if not m:
         return ""
     parts = m.group(1).lower().rstrip(".").split(".")
     return ".".join(parts[-2:]) if len(parts) >= 2 else parts[0]
+
+
+def extract_tld(domain: str) -> str:
+    """登録ドメインから TLD（最後のラベル）を取り出す。"""
+    if not domain:
+        return ""
+    return domain.rsplit(".", 1)[-1].lower()
 
 
 def check_spam(msg: email.message.Message, esp_whitelist: set[str]) -> tuple[bool, str]:
@@ -87,10 +107,27 @@ def check_spam(msg: email.message.Message, esp_whitelist: set[str]) -> tuple[boo
             return True, f"DMARC check: dmarc={m.group(1)}"
 
     # ルール2 – 送信ドメイン不一致（ESP ホワイトリストは除外）
-    rp = extract_domain(msg.get("Return-Path", ""))
-    fr = extract_domain(msg.get("From", ""))
+    return_path = msg.get("Return-Path", "")
+    from_header = msg.get("From", "")
+    rp = extract_domain(return_path)
+    fr = extract_domain(from_header)
     if rp and fr and rp != fr and rp not in esp_whitelist:
         return True, f"Domain mismatch: Return-Path={rp!r}, From={fr!r}"
+
+    # ルール3 – SPF none / fail
+    spf_header = " ".join(v for k, v in msg.items()
+                          if k.lower() == "received-spf").lower()
+    if spf_header:
+        spf_m = re.match(r"\s*(none|fail)\b", spf_header)
+        if spf_m:
+            return True, f"SPF check: {spf_m.group(1)}"
+
+    # ルール4 – 廉価・濫用 TLD
+    # Return-Path と From 両方のドメイン TLD を確認
+    sending_domain = rp or fr
+    tld = extract_tld(sending_domain)
+    if tld in SUSPICIOUS_TLDS:
+        return True, f"Suspicious TLD: .{tld} (domain={sending_domain!r})"
 
     return False, ""
 
