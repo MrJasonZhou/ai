@@ -177,7 +177,7 @@ def fetch_and_clean_imap(section: str, cfg: dict, state: dict, esp_whitelist: se
 
     junk = resolve_junk_folder(conn, junk_folder_cfg)
     log(f"[{section}] 迷惑メールフォルダ: {junk!r}")
-    # IMAP requires mailbox names with spaces to be quoted
+    # スペースを含むフォルダ名は IMAP プロトコル上クォートが必要
     junk_imap = f'"{junk}"' if " " in junk else junk
 
     conn.select("INBOX")
@@ -352,6 +352,6 @@ def fetch_and_clean(section: str) -> None:
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print(f"Usage: {sys.argv[0]} <section>")
+        print(f"使い方: {sys.argv[0]} <セクション名>")
         sys.exit(1)
     fetch_and_clean(sys.argv[1])
