@@ -1,0 +1,109 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+tmux セッションインタラクティブ選択ツール。
+上下キーでセッションを選択し、Enter でアタッチします。
+新規セッションの作成も可能です。
+"""
+
+import os
+import sys
+import subprocess
+import curses
+
+def get_tmux_sessions() -> list[tuple[str, str]]:
+    """存在する tmux セッションの一覧を取得する。"""
+    try:
+        res = subprocess.run(["tmux", "list-sessions"], capture_output=True, text=True, check=True)
+        lines = res.stdout.strip().split("\n")
+        sessions = []
+        for line in lines:
+            if line.strip():
+                # セッション名と詳細情報を抽出
+                name = line.split(":")[0]
+                sessions.append((name, line))
+        return sessions
+    except subprocess.CalledProcessError:
+        return []
+
+def main_menu(stdscr) -> str:
+    """curses を使用した選択メニュー。"""
+    # カーソルを非表示にし、色のペアを初期化
+    curses.curs_set(0)
+    curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_GREEN)
+
+    sessions = get_tmux_sessions()
+    
+    # 選択肢の構築
+    options = []
+    for name, desc in sessions:
+        options.append((name, desc))
+    options.append(("_new_", "[+] Create New Session"))
+    options.append(("_exit_", "[x] Exit"))
+
+    current_row = 0
+
+    while True:
+        stdscr.clear()
+        height, width = stdscr.getmaxyx()
+
+        # ヘッダーの描画
+        stdscr.addstr(1, 2, "=== Select tmux Session ===", curses.A_BOLD)
+        stdscr.addstr(2, 2, "Use Up/Down (↑/↓) to select, Enter to attach", curses.A_DIM)
+
+        # 選択肢の描画
+        for idx, (name, label) in enumerate(options):
+            x = 4
+            y = 4 + idx
+            
+            # 画面外へのはみ出し防止
+            if y >= height - 1:
+                break
+                
+            if idx == current_row:
+                stdscr.attron(curses.color_pair(1))
+                stdscr.addstr(y, x, f" > {label} ")
+                stdscr.attroff(curses.color_pair(1))
+            else:
+                stdscr.addstr(y, x, f"   {label} ")
+
+        stdscr.refresh()
+
+        # キー入力処理
+        key = stdscr.getch()
+
+        if key == curses.KEY_UP:
+            current_row = (current_row - 1) % len(options)
+        elif key == curses.KEY_DOWN:
+            current_row = (current_row + 1) % len(options)
+        elif key in (curses.KEY_ENTER, 10, 13):
+            # 選択決定
+            return options[current_row][0]
+
+def run():
+    # tmux がシステムに存在するか確認
+    try:
+        subprocess.run(["tmux", "-V"], capture_output=True, check=True)
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        print("Error: tmux is not installed or not working.")
+        sys.exit(1)
+
+    sessions = get_tmux_sessions()
+    if not sessions:
+        # セッションが存在しない場合は、直接 tmux を新規作成
+        os.execvp("tmux", ["tmux"])
+
+    # インタラクティブメニューの実行
+    selected = curses.wrapper(main_menu)
+
+    if selected == "_exit_":
+        sys.exit(0)
+    elif selected == "_new_":
+        # 新規セッションの作成
+        os.execvp("tmux", ["tmux"])
+    else:
+        # 選択したセッションにアタッチ
+        os.execvp("tmux", ["tmux", "attach-session", "-t", selected])
+
+if __name__ == "__main__":
+    run()
